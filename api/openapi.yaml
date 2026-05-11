@@ -1,0 +1,999 @@
+openapi: "3.0.3"
+info:
+  title: MThen API
+  description: Multi-user music timeline discovery platform
+  version: "1.0.0"
+  contact:
+    name: MThen Team
+
+servers:
+  - url: http://localhost:8080/api
+    description: Local development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    PaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items: {}
+        page:
+          type: integer
+        limit:
+          type: integer
+        total_count:
+          type: integer
+        total_pages:
+          type: integer
+
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        display_name:
+          type: string
+      required:
+        - email
+        - password
+        - display_name
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserProfile'
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        joined_at:
+          type: string
+          format: date-time
+        top_10_albums:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlbumSummary'
+        top_10_songs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SongSummary'
+        top_10_artists:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtistSummary'
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+        bio:
+          type: string
+
+    UpdateTopItemsRequest:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 10
+      required:
+        - ids
+
+    TimelineYear:
+      type: object
+      properties:
+        year:
+          type: integer
+        album_count:
+          type: integer
+
+    Artist:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        image_url:
+          type: string
+        bio:
+          type: string
+        genres:
+          type: array
+          items:
+            type: string
+        country:
+          type: string
+        bandcamp_url:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ArtistDetail:
+      allOf:
+        - $ref: '#/components/schemas/Artist'
+        - type: object
+          properties:
+            discography:
+              type: array
+              items:
+                $ref: '#/components/schemas/AlbumSummary'
+            release_years:
+              type: array
+              items:
+                type: integer
+            related_artists:
+              type: array
+              items:
+                $ref: '#/components/schemas/RelatedArtist'
+
+    AlbumSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        release_year:
+          type: integer
+        release_month:
+          type: integer
+          nullable: true
+        album_type:
+          type: string
+        cover_art_url:
+          type: string
+          nullable: true
+        is_outstanding:
+          type: boolean
+
+    SongSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        album_id:
+          type: string
+          format: uuid
+        album_title:
+          type: string
+        artist_name:
+          type: string
+        track_number:
+          type: integer
+          nullable: true
+
+    ArtistSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        image_url:
+          type: string
+          nullable: true
+        genres:
+          type: array
+          items:
+            type: string
+
+    RelatedArtist:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        image_url:
+          type: string
+          nullable: true
+        relationship_type:
+          type: string
+
+    AlbumDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        artist_id:
+          type: string
+          format: uuid
+        artist_name:
+          type: string
+        release_year:
+          type: integer
+        release_month:
+          type: integer
+          nullable: true
+        release_day:
+          type: integer
+          nullable: true
+        album_type:
+          type: string
+        cover_art_url:
+          type: string
+        genres:
+          type: array
+          items:
+            type: string
+        label:
+          type: string
+        track_count:
+          type: integer
+        runtime_seconds:
+          type: integer
+        is_outstanding:
+          type: boolean
+        description:
+          type: string
+        songs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SongWithArtist'
+        credits:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlbumArtistCredit'
+
+    SongWithArtist:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        album_id:
+          type: string
+          format: uuid
+        artist_name:
+          type: string
+        track_number:
+          type: integer
+        duration_seconds:
+          type: integer
+
+    AlbumArtistCredit:
+      type: object
+      properties:
+        artist_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        role:
+          type: string
+          enum: [primary, featured, producer, remixer, composer]
+        position:
+          type: integer
+
+    SearchResult:
+      type: object
+      properties:
+        result_type:
+          type: string
+          enum: [artist, album]
+        id:
+          type: string
+        title:
+          type: string
+        subtitle:
+          type: string
+        image_url:
+          type: string
+          nullable: true
+        release_year:
+          type: integer
+          nullable: true
+        album_type:
+          type: string
+          nullable: true
+        is_outstanding:
+          type: boolean
+          nullable: true
+
+    ListeningRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        song_id:
+          type: string
+          format: uuid
+        album_id:
+          type: string
+          format: uuid
+        artist_id:
+          type: string
+          format: uuid
+        song_title:
+          type: string
+        album_title:
+          type: string
+        artist_name:
+          type: string
+        listened_at:
+          type: string
+          format: date-time
+        listened_year:
+          type: integer
+        listened_month:
+          type: integer
+
+    CreateListeningRequest:
+      type: object
+      properties:
+        song_id:
+          type: string
+          format: uuid
+        album_id:
+          type: string
+          format: uuid
+        artist_id:
+          type: string
+          format: uuid
+        listened_at:
+          type: string
+          format: date-time
+        source:
+          type: string
+        duration_seconds:
+          type: integer
+      required:
+        - song_id
+        - album_id
+        - artist_id
+
+    MonthlyListeningSet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        year:
+          type: integer
+        month:
+          type: integer
+        songs:
+          type: array
+          items:
+            type: string
+            format: uuid
+        notes:
+          type: string
+          nullable: true
+
+    UpdateMonthlySetRequest:
+      type: object
+      properties:
+        songs:
+          type: array
+          items:
+            type: string
+            format: uuid
+        notes:
+          type: string
+
+    GenreCount:
+      type: object
+      properties:
+        genre:
+          type: string
+        album_count:
+          type: integer
+
+    ActiveYearsResult:
+      type: object
+      properties:
+        artist_id:
+          type: string
+          format: uuid
+        years:
+          type: array
+          items:
+            type: integer
+
+tags:
+  - name: Auth
+    description: Authentication endpoints
+  - name: Timeline
+    description: Public music timeline
+  - name: Albums
+    description: Album browsing
+  - name: Artists
+    description: Artist browsing and search
+  - name: Search
+    description: Unified search
+  - name: Genres
+    description: Genre listing
+  - name: User
+    description: Authenticated user endpoints
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and receive JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /timeline:
+    get:
+      tags: [Timeline]
+      summary: Get all years with album counts
+      responses:
+        '200':
+          description: List of years
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimelineYear'
+
+  /timeline/{year}:
+    get:
+      tags: [Timeline]
+      summary: Get albums for a specific year, grouped by month
+      parameters:
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated album list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /timeline/{year}/{month}:
+    get:
+      tags: [Timeline]
+      summary: Get albums for a specific year and month
+      parameters:
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Monthly timeline detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  year:
+                    type: integer
+                  month:
+                    type: integer
+                  total_count:
+                    type: integer
+                  albums:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AlbumDetail'
+
+  /albums:
+    get:
+      tags: [Albums]
+      summary: List albums with optional filters
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+        - name: genre
+          in: query
+          schema:
+            type: string
+        - name: outstanding
+          in: query
+          schema:
+            type: boolean
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [release_date, title]
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated album list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /albums/{id}:
+    get:
+      tags: [Albums]
+      summary: Get album details with songs and credits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Album detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlbumDetail'
+        '404':
+          description: Album not found
+
+  /artists:
+    get:
+      tags: [Artists]
+      summary: List or search artists
+      parameters:
+        - name: q
+          in: query
+          description: Search query (supports trigram matching)
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated artist list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /artists/{id}:
+    get:
+      tags: [Artists]
+      summary: Get artist details with discography
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Artist detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtistDetail'
+        '404':
+          description: Artist not found
+
+  /artists/{id}/years:
+    get:
+      tags: [Artists]
+      summary: Get all release years for an artist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Active years result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveYearsResult'
+
+  /search:
+    get:
+      tags: [Search]
+      summary: Unified search across artists and albums
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query (supports typo-tolerant trigram matching)
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /genres:
+    get:
+      tags: [Genres]
+      summary: List all genres with album counts
+      responses:
+        '200':
+          description: Genre list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GenreCount'
+
+  /me/profile:
+    get:
+      tags: [User]
+      summary: Get current user profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+    put:
+      tags: [User]
+      summary: Update user profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /me/top-albums:
+    get:
+      tags: [User]
+      summary: Get user's top 10 albums
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Top albums
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+    put:
+      tags: [User]
+      summary: Update user's top 10 albums
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTopItemsRequest'
+      responses:
+        '200':
+          description: Updated top albums
+
+  /me/top-songs:
+    get:
+      tags: [User]
+      summary: Get user's top 10 songs
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Top songs
+    put:
+      tags: [User]
+      summary: Update user's top 10 songs
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTopItemsRequest'
+      responses:
+        '200':
+          description: Updated top songs
+
+  /me/top-artists:
+    get:
+      tags: [User]
+      summary: Get user's top 10 artists
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Top artists
+    put:
+      tags: [User]
+      summary: Update user's top 10 artists
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTopItemsRequest'
+      responses:
+        '200':
+          description: Updated top artists
+
+  /me/listening:
+    post:
+      tags: [User]
+      summary: Record a listening event
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateListeningRequest'
+      responses:
+        '201':
+          description: Listening record created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListeningRecord'
+    get:
+      tags: [User]
+      summary: List listening history
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated listening records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /me/monthly-set/{year}/{month}:
+    get:
+      tags: [User]
+      summary: Get monthly listening set
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Monthly listening set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyListeningSet'
+    put:
+      tags: [User]
+      summary: Create or update monthly listening set
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMonthlySetRequest'
+      responses:
+        '200':
+          description: Upserted monthly listening set
